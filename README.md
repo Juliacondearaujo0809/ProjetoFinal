@@ -1,4 +1,4 @@
-# Chatboot de Data Engineering
+# Ferramenta de Obtenção de Evidência Científica para Apoiar Data Engineering
 
 ## **Pré-Instalação e Instalação**
 
