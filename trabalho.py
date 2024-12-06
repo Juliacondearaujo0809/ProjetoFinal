@@ -21,14 +21,13 @@ from langchain_huggingface import HuggingFaceEmbeddings
 ## scopo global
 #####################################################################
 
-file_directory = "arquivos"
+file_directory = "artigos"
 embedding_model = 'sentence-transformers/all-MiniLM-L6-v2'
 llm_model = "llama3.2"
 
 
 #######################################################################
-## Carregamento dos dados
-## arquivos
+## Módulo de Carregamento e Indexação de Documentos
 ##
 #######################################################################
 ## leitura dos dados em arquivos
@@ -66,8 +65,7 @@ def prepare_and_split_docs(directory):
 
 
 ########################################################################
-##Salvar na base de dados vetorial local
-## FAISS (Facebook AI Similarity Search)
+## Módulo de Recuperação de Informações
 #########################################################################
 
 embeddings = HuggingFaceEmbeddings(model_name=embedding_model)
@@ -83,7 +81,7 @@ def ingest_into_vectordb(split_docs):
 
 
 #######################################################################
-#### Vamos começar a conversa
+#### Módulo de Geração de Respostas
 ############################################################################
 
 
@@ -173,6 +171,15 @@ conversational_rag_chain = get_conversation_chain(retriever)
 #####################################################################
 
 def generate_response(input):
+    ## ler documentos e vetorizar
+    split_docs = prepare_and_split_docs(file_directory)
+    # salvar as chunks na base de dados
+    vector_db = ingest_into_vectordb(split_docs)
+    ## criar o canal de comunicação da base vetorial para pesquisa
+    retriever = vector_db.as_retriever()
+    ## criar um canal de chat com retriever (utilizar os dados da base)
+    ## para dar contexto
+    conversational_rag_chain = get_conversation_chain(retriever)
     qa1 = conversational_rag_chain.invoke(
         {"input": input},
         config={
@@ -183,29 +190,24 @@ def generate_response(input):
     return qa1["answer"]
 
 
+
 #######################################################################
-## Interface grafica
+## Módulo de Interface Gráfica
 ########################################################################
-st.set_page_config(page_title="Converse com documentos 🤖", page_icon="🤖")
-st.title("🤖 Chatboot  ")
-st.write("Desenvolvido para fins educacionais")
+st.set_page_config(page_title="🤖 Scientific Evidence about Data Engineering ", page_icon="🤖")
+st.title("🤖 Scientific Evidence about Data Engineering ")
+st.write("Developed for educational purposes")
 
 with st.form("llm-form"):
-    text = st.text_area("Faça uma pergunta sobre data engineering")
-    submit = st.form_submit_button("Enviar")
+    text = st.text_area("Ask a question about data engineering")
+    submit = st.form_submit_button("Send")
 
 if "chat_history" not in st.session_state:
     st.session_state['chat_history'] = []
 
 if submit and text:
-    with st.spinner("Gerando a Resposta ... "):
+    with st.spinner("Generating ... "):
         response = generate_response(text)
         st.session_state['chat_history'].append({"human": text,
                                                  "system": response})
         st.write(response)
-
-# st.write("## Chat History ## ")
-# for chat in st.session_state['chat_history']:
-#    st.write(f"**🙂**: {chat['human']}")
-#    st.write(f"**🤖 Assitante**: {chat['system']}")
-#    st.write("------")
